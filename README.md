@@ -1,2 +1,1 @@
-# Reproducing-Stats-Ed-Study
-Reproducing the results found in  Hodds, M., Alcock, L., &amp; Inglis, M. (2014). Self-Explanation Training Improves Proof Comprehension. Journal  for Research in Mathematics Education.
+Statistical analysis in R created to reproduce the results found in  Hodds, M., Alcock, L., &amp; Inglis, M. (2014). Self-Explanation Training Improves Proof Comprehension. Journal  for Research in Mathematics Education. The main goal of this project was to apply well-known statistical methods to an unfamiliar area. This project was completed for the University of Edinburgh's Statistics in Education course.
