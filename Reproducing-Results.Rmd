@@ -1,0 +1,132 @@
+---
+title: 'Statistics in Education: A1 Reproducibility'
+author: "Julie Dieroff"
+date: "2025-10-06"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(afex)
+
+# set the default plot style
+theme_set(theme_minimal())
+```
+
+# Self-explanation training improves proof comprehension
+
+Hodds, M., Alcock, L., & Inglis, M. (2014). Self-Explanation Training Improves Proof Comprehension. Journal for Research in Mathematics Education, 45(1), 62-101. https://doi.org/10.5951/jresematheduc.45.1.0062
+
+
+```{r load-data}
+hodds_exp3_scores <- read_csv("https://www.maths.ed.ac.uk/gkinnear/datasets/hodds-2014-exp3-scores.csv", show_col_types = FALSE)
+```
+
+## Introduction and study design
+
+The authors of this study noticed that most of the research performed on mathematics education is focused on proof construction and not comprehension. They found this concerning as reading proofs in textbooks is a common way for students to be taught new concepts and other studies have suggested that undergraduate students cannot consistently tell if a proof is valid or not. This suggests that mathematics students may be struggling to comprehend the proofs they are required to read. This study sets out to find if self-explanation training would improve the proof comprehension of undergraduate students. Self-explanation consists of asking students to create their own explanations of the new material they have just seen. This study was performed experimentally with three different approaches to tackle various research questions. We will be focusing on the experiment with the goal of seeing if self-explanation training can be used in a pedagogical setting and have lasting improvements in comprehension. 
+
+The methodology of this experiment consisted of providing first-year mathematics students a paper booklet of either information about time management for the control group, or the benefits and key principles of self-explanation training with an example. The experiment had randomised groups and spanned two lectures, in the first the control group read the time management booklet while the self-explanation group read their booklet. The posttest consisted of all groups reading and answering questions about "Proof B". Twenty days later a delayed posttest occurred where both groups read and answered questions about "Proof A". After the last posttest both groups read whichever booklet they had not been assigned. This experiment can be described as a crossover study to answer an interventional question.
+
+## Results
+
+The graph below displays the mean comprehension test scores at the different times for the two groups. The students were scored out of ten. At both test points the self-explanation group scored higher on average than the control group. What is interesting to note is that the scores appear slightly higher for both groups in the delayed posttest. When we examine the exact values given in Table 1 we see that in fact the self-explanation group's mean score has improved by $0.094$ and the control group's mean score has improved by $0.259$. This is surprising as test scores usually decline over time after an intervention. But this improvement was observed in both groups and the control group did not undergo the intervention until after the final posttest. Furthermore, the control group's scores improved more than the self-explanation group. While this may be attributed to various factors, what appears more likely is that the questions about the second proof were easier than those for the first proof. Another possibility is that the capabilities of the participants themselves improved. The participants were mathematics students and the experiment occurred during normal scheduled lectures. The questions may have stayed equal in difficulty but the students could have become more adept at answering questions about a proof after twenty days due to their degree related education.
+```{r}
+# Replicate the observed mean comprehension test scores at posttest and delayed posttest split by condition.
+
+# Calculate the mean scores for each group for each posttest
+mean_scores <- hodds_exp3_scores %>%
+  pivot_longer(cols = c(Score1, Score2), names_to = "Time", values_to = "Value") %>%
+  mutate(Time = ifelse(Time == "Score1", "Immediate (Proof B)", "Delayed (Proof A)")) %>%
+  group_by(Group, Time) %>%
+  summarise(Mean = mean(Value), SE   = sd(Value) / sqrt(n()),.groups = "drop")
+
+# Replicate the graph in Figure 5
+ggplot(mean_scores, aes(x = factor(Time, levels = c("Immediate (Proof B)", "Delayed (Proof A)")), y = Mean, fill = factor(Group, levels = c("Self Expl Training", "Control")))) +
+  geom_bar(stat = "identity", position = position_dodge(),lwd = 0.5, color = "black") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), position = position_dodge(width = 0.9), width = 0.2) +
+  scale_fill_manual(values = c("Self Expl Training" = "#696969", "Control" = "#D3D3D3"))+
+  ylim(c(0,10)) + 
+  theme(legend.position = "right") +
+  labs(x = "Test Point",
+       y = "Comprehension Test Scores") + 
+  guides(fill = guide_legend(title = "")) +
+  theme_classic()
+
+```
+
+The violin plot below includes the actual scores of each student within their categories to show their distribution. This is in addition to the mean scores, like the bar plot above. It shows that most of the students, regardless of group or when the posttest occurs, are achieving very similar scores. Although there are some instances of very high or low scores the rest of the scores are mostly ranging between four and eight. Notably, the distributions of the scores for each group are more similar for the second posttest. Another interesting phenomenon is that in both groups a student received a perfect score during the initial posttest but no one did during the second posttest. Furthermore, there are observably fewer scores less than or equal to four. This suggests that despite an overall higher achievement for the second posttest, the scores are more concentrated around the respective means (especially for the self-explanation group) and since the means are closer, the distributions are more similar as well. Overall, this plot displays the same change in mean scores overtime as the bar plot with the additional detail of how the distribution of the scores varies across the posttests.
+
+```{r}
+# Produce an alternate visualisation
+grouped_scores <- hodds_exp3_scores %>%
+  pivot_longer(cols = c(Score1, Score2), names_to = "Time", values_to = "Value") %>%
+  mutate(Time = ifelse(Time == "Score1", "Immediate (Proof B)", "Delayed (Proof A)"))
+
+
+ggplot(grouped_scores, 
+       aes(x = factor(Time, levels = c("Immediate (Proof B)", "Delayed (Proof A)")), 
+           y = Value, 
+           fill = factor(Group, levels = c("Self Expl Training", "Control")))) +
+  geom_violin(color = "black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.3, dodge.width = 0.9), alpha = 0.3, size = 2.5) +
+  stat_summary(fun.data = "mean_se", geom = "pointrange", color = "#CD00CD", position = position_dodge(width = 0.9)) +
+  scale_y_continuous(breaks = seq(0, 10, by = 1)) +
+  scale_fill_manual(values = c("Self Expl Training" = "#FFE4E1", "Control" = "#E0FFFF"))+
+  labs(title = "Distribution of scores across test types and training",
+       x = "Test Point",
+       y = "Comprehension Test Scores") +
+  guides(fill = guide_legend(title = "")) +
+  theme_classic() +
+  theme(legend.position = "right")
+```
+
+## Analysis
+
+We have performed a Type III ANOVA where the time of the posttest is the one within-subjects factor and the different groups are the between-subjects factor. The ANOVA Table displayed below shows that the results are the same as the paper. The results are that the main effect has $F(1,105) = 6.02$, $\eta_p^2 = 0.054$ and $p = 0.016$ which means that the effect of which group a student belongs to on the posttest scores is significant at the $0.05$ level. We can also conclude that there is no significant effect of time ($F(1,105) = 0.75$) and no interaction between the groups and time ($F(1,105) = 0.16$) since $F<1$ for both cases. This further supports the idea that the mean scores increasing in the second posttest is unrelated to self-explanation training. 
+
+Table 1 below shows us that for the first posttest the self-explanation group had a mean score of $5.94$ with standard deviation of $1.91$ while the control group achieved a lower mean score of $5.19$ with standard deviation $1.79$. Then at the second posttest the self-explanation and control groups had mean scores $6.04$ and $5.44$ and standard deviations of $1.59$ and $1.79$ respectively. In both cases the self-explanation groups achieved higher mean scores and the ANOVA test confirmed that which group a student was assigned to has a significant impact on the posttest scores so the results support the hypothesis that self-explanation training improves proof comprehension in the short and long term. Notably, the standard deviation for the self-explanation group is higher than the control group for the first posttest and while the control group's standard deviation remains the same for the second posttest the self-explanation group's standard deviation decreased even lower than the other group. This observation is supported by the violin graph above where the distribution of the self-explanation group for the second posttest in much closer to the mean than for the first posttest.
+
+```{r}
+# Reproduce the ANOVA results
+
+ANOVA_test <- afex::aov_ez(
+               data = grouped_scores, 
+               id = "Participant",
+               within = "Time",
+               between = "Group", 
+               dv = "Value",
+               factorize = FALSE,
+               type = 3,
+               anova_table = list(es = "pes")) 
+
+ANOVA_test
+
+```
+
+```{r}
+mean_and_sd <- hodds_exp3_scores %>%
+  pivot_longer(cols = c(Score1, Score2), names_to = "Time", values_to = "Value") %>%
+  mutate(Time = ifelse(Time == "Score1", "Immediate (Proof B)", "Delayed (Proof A)")) %>%
+  group_by(Group, Time) %>%
+  summarise(Mean = mean(Value), SD   = sd(Value), .groups = "drop")
+
+mean_and_sd
+print("Table 1. Average mean scores and standard deviation for the scores acheived by each group across both test times. ")
+```
+
+## Interpretation
+
+With these ANOVA results the authors of this paper concluded that "self-explanation training in a typical pedagogical environment improved proof comprehension significantly in the short term and had lasting effects". The ANOVA results support that the effect of a student's group is significant at the $0.05$ level since the $p$-value for the effect of which group a student is in is less than $0.05$. Then, the average mean scores are consistently higher for the self-explanation group which in combination with the ANOVA results does indicate that the author's of this paper have come to an appropriate conclusion. With this being said, there are other factors that may indicate that this conclusion is not fully accurate. 
+
+The authors claim that the self-explanation group performing better than the control group for the posttest twenty days later implies that self-explanation training has lasting positive effects. A twenty day impact of the training may not be sufficient to conclude that there is a lasting effect. This is further put into question when we note that the control group improved more than the self-explanation group between posttests. It is possible that the effects of this training will not last much longer than these twenty days and other influences will have more significant impacts on student's proof comprehension.
+
+Additionally, the experiment did not include an initial test to gauge student's performance within their randomly allocated groups. With a sample size of $107$ it is unlikely that one group would be noticeably better than the other but it may add more confidence in the conclusions made in this study.
+
+Finally, the participants of this study are first-year undergraduate students. Since they are the post-secondary students with the least amount of post-secondary education it is possible that self-explanation training has a larger impact on their proof comprehension than final year undergraduate students who have developed their own methods of understanding proofs, for example. The results of this experiment may be different if it considered students across multiple years of their undergraduate degree. Furthermore, to improve the precision of this conclusion, the authors could have said that self-explanation training in a typical pedagogical environment improved the proof comprehension of first-year undergraduate mathematics students significantly in the short term and had lasting effects. 
